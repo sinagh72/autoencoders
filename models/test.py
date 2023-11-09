@@ -1,4 +1,5 @@
 import torch
+from torch import nn
 from transformers import AutoImageProcessor, AutoModelForImageClassification
 from PIL import Image
 import requests
@@ -17,7 +18,6 @@ print("Predicted class:", model.config.id2label[predicted_class_idx])
 total_params = sum(p.numel() for p in model.parameters())
 print(f"Total number of parameters: {total_params}")
 
-
 from urllib.request import urlopen
 from PIL import Image
 import timm
@@ -30,12 +30,14 @@ model = timm.create_model(
     'tf_efficientnetv2_s.in21k_ft_in1k',
     pretrained=True,
     num_classes=0,  # remove classifier nn.Linear
-    dropout=0.1
 )
 model = model.eval()
-
+model.global_pool = nn.Identity()
+print(model)
 # get model specific transforms (normalization, resize)
 data_config = timm.data.resolve_model_data_config(model)
+data_config['input_size'] = (3, 256, 256)
+print(data_config)
 transforms = timm.data.create_transform(**data_config, is_training=False)
 
 output = model(transforms(img).unsqueeze(0))  # output is (batch_size, num_features) shaped tensor
