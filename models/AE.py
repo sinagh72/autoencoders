@@ -49,10 +49,8 @@ class Autoencoder(pl.LightningModule):
             optimizer = optim.RMSprop(self.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.wd)
         elif self.hparams.optimizer_type == 'Adagrad':
             optimizer = optim.Adagrad(self.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.wd)
-            scheduler = None  # Adagrad typically does not require a scheduler
         elif self.hparams.optimizer_type == 'Adadelta':
             optimizer = optim.Adadelta(self.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.wd)
-            scheduler = None  # Adadelta typically does not require a scheduler
         elif self.hparams.optimizer_type == 'Nadam':
             optimizer = optim.NAdam(self.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.wd)
         else:
