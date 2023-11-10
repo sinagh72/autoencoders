@@ -1,24 +1,31 @@
 import torch
 from torch import nn, optim
 from torch.nn import functional as F
+import lightning.pytorch as pl
+
+from models.ssim import SSIMLoss
+
+
 class Autoencoder(pl.LightningModule):
 
     def __init__(self,
-                 base_channel_size: int,
-                 latent_dim: int,
-                 encoder_class: object = Encoder,
-                 decoder_class: object = Decoder,
-                 num_input_channels: int = 3,
-                 width: int = 256,
-                 height: int = 256):
+                 encoder,
+                 decoder,
+                 loss_type,
+                 device,
+                 **kwargs):
         super().__init__()
-        # Saving hyperparameters of autoencoder
-        self.save_hyperparameters()
         # Creating encoder and decoder
-        self.encoder = encoder_class(num_input_channels, base_channel_size, latent_dim)
-        self.decoder = decoder_class(num_input_channels, base_channel_size, latent_dim)
-        # Example input array needed for visualizing the graph of the network
-        self.example_input_array = torch.zeros(2, num_input_channels, width, height)
+        self.encoder = encoder
+        self.decoder = decoder
+
+        if loss_type == "mse":
+            self.criterion = F.mse_loss
+        elif loss_type == "cosine":
+            self.criterion = F.cosine_similarity
+        elif loss_type == "ssim":
+            self.criterion = SSIMLoss().to(device)
+        self.kwargs = kwargs
 
     def forward(self, x):
         """
@@ -34,28 +41,42 @@ class Autoencoder(pl.LightningModule):
         """
         x, _ = batch  # We do not need the labels
         x_hat = self.forward(x)
-        loss = F.mse_loss(x, x_hat, reduction="none")
-        loss = loss.sum(dim=[1, 2, 3]).mean(dim=[0])
+        loss = self.criterion(x, x_hat)
         return loss
 
     def configure_optimizers(self):
-        if self.hparams.optimizer_type == 'SGD':
-            optimizer = optim.SGD(self.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.wd, momentum=self.hparams.momentum)
-        elif self.hparams.optimizer_type == 'ADAM':
-            optimizer = optim.Adam(self.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.wd)
-        elif self.hparams.optimizer_type == 'AdamW':
-            optimizer = optim.AdamW(self.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.wd)
-        elif self.hparams.optimizer_type == 'RMSprop':
-            optimizer = optim.RMSprop(self.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.wd)
-        elif self.hparams.optimizer_type == 'Adagrad':
-            optimizer = optim.Adagrad(self.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.wd)
-        elif self.hparams.optimizer_type == 'Adadelta':
-            optimizer = optim.Adadelta(self.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.wd)
-        elif self.hparams.optimizer_type == 'Nadam':
-            optimizer = optim.NAdam(self.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.wd)
+        if self.kwargs["optimizer_type"] == 'SGD':
+            optimizer = optim.SGD(self.parameters(), lr=self.kwargs["lr"], weight_decay=self.kwargs["wd"])
+        elif self.kwargs["optimizer_type"] == 'SGD_nesterov':
+            optimizer = optim.SGD(self.parameters(), lr=self.kwargs["lr"], weight_decay=self.kwargs["wd"],
+                                  momentum=self.kwargs["momentum"], nesterov=True)
+        elif self.kwargs["optimizer_type"] == 'ADAM':
+            optimizer = optim.Adam(self.parameters(), lr=self.kwargs["lr"], weight_decay=self.kwargs["wd"])
+        elif self.kwargs["optimizer_type"] == 'AdamW':
+            optimizer = optim.AdamW(self.parameters(), lr=self.kwargs["lr"], weight_decay=self.kwargs["wd"])
+        elif self.kwargs["optimizer_type"] == 'RMSprop':
+            optimizer = optim.RMSprop(self.parameters(), lr=self.kwargs["lr"], weight_decay=self.kwargs["wd"])
+        elif self.kwargs["optimizer_type"] == 'Adagrad':
+            optimizer = optim.Adagrad(self.parameters(), lr=self.kwargs["lr"], weight_decay=self.kwargs["wd"])
+        elif self.kwargs["optimizer_type"] == 'Adadelta':
+            optimizer = optim.Adadelta(self.parameters(), lr=self.kwargs["lr"], weight_decay=self.kwargs["wd"])
+        elif self.kwargs["optimizer_type"] == 'Nadam':
+            optimizer = optim.NAdam(self.parameters(), lr=self.kwargs["lr"], weight_decay=self.kwargs["wd"])
         else:
-            raise ValueError(f"Unknown optimizer type: {self.hparams.optimizer_type}")
-        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=self.hparams.step_size, gamma=self.hparams.gamma)
+            raise ValueError(f"Unknown optimizer type: {self.kwargs['optimizer_type']}")
+
+        if self.kwargs["scheduler_type"] == 'StepLR':
+            scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=self.kwargs["step_size"], gamma=0.5)
+
+        elif self.kwargs["scheduler_type"] == 'CosineAnnealingLR':
+            scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100, eta_min=1e-8)
+
+        elif self.kwargs["scheduler_type"] == 'ReduceLROnPlateau':
+            scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5,
+                                                             threshold=0.0001, cooldown=3, min_lr=1e-8)
+        else:
+            raise ValueError(f"Unknown scheduler type: {self.kwargs['scheduler']}")
+
         return {
             'optimizer': optimizer,
             'lr_scheduler': scheduler,

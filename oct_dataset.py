@@ -188,7 +188,7 @@ def get_oct500_imgs(data_dir: str, **kwargs):
 
 def split_oct500(total_ids: list, train_val_test: tuple):
     """
-    Divides data into train, val, test
+    Divides config into train, val, test
     :param total_ids: list of patients ids
     :param train_val_test: (train split, val split, test split) --> the sum should be 1
     """
@@ -213,7 +213,7 @@ def get_oct500(list_ids, data_dir, class_label):
 
 if __name__ == "__main__":
     # read from the .env file
-    load_dotenv(dotenv_path="./data/.env")
+    load_dotenv(dotenv_path="config/.env")
     DATASET_PATH = os.getenv('DATASET_PATH')
     OCTDataset(data_dir=DATASET_PATH + "2/OCTA_6mm/", dataset_func=get_oct500_imgs,
                mode="train", train_val_test=(0.6, 0.2, 0.2))
