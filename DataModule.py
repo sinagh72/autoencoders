@@ -33,7 +33,7 @@ class KermanyDataModule(pl.LightningDataModule):
         elif stage == "val":
             self.data_val = OCTDataset(transform=self.train_transform, data_dir=self.data_dir,
                                        img_paths=self.img_paths[1])
-            print("train data len:",len(self.data_val))
+            print("val data len:",len(self.data_val))
 
         # Assign Test split(s) for use in Dataloaders
         if stage == "test":
