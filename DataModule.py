@@ -7,7 +7,8 @@ from oct_dataset import OCTDataset, get_kermany_imgs
 
 
 class KermanyDataModule(pl.LightningDataModule):
-    def __init__(self, data_dir: str, batch_size: int, classes: list, split=None, train_transform = None, test_transform = None):
+    def __init__(self, data_dir: str, batch_size: int, classes: list, split=None, train_transform=None,
+                 test_transform=None):
         super().__init__()
         if split is None:
             split = [1]
@@ -28,12 +29,12 @@ class KermanyDataModule(pl.LightningDataModule):
         if stage == "train":
             self.data_train = OCTDataset(transform=self.train_transform, data_dir=self.data_dir,
                                          img_paths=self.img_paths[0])
-            print("train data len:",len(self.data_train))
+            print("train data len:", len(self.data_train))
         # Assign val split(s) for use in Dataloaders
         elif stage == "val":
             self.data_val = OCTDataset(transform=self.train_transform, data_dir=self.data_dir,
                                        img_paths=self.img_paths[1])
-            print("val data len:",len(self.data_val))
+            print("val data len:", len(self.data_val))
 
         # Assign Test split(s) for use in Dataloaders
         if stage == "test":

@@ -13,7 +13,7 @@ from lightning.pytorch import loggers as pl_loggers
 if __name__ == "__main__":
     max_epochs = 100
     set_seed(10)
-    model_path = "checkpoints/cme"
+    model_path = "checkpoints/cae"
 
     kermany_classes = [("NORMAL", 0),
                        ("DRUSEN", 1),
@@ -36,13 +36,14 @@ if __name__ == "__main__":
     kermany_datamodule.setup("val")
     train_loader = kermany_datamodule.train_dataloader()
     val_loader = kermany_datamodule.val_dataloader()
+    print(len(train_loader))
 
     loss_type = "mse"
     optimizer_type = "SGD"
-    scheduler_type = "StepLR"
+    scheduler_type = "StepLasdfR"
     patience = 10
     step_size = len(train_loader)//batch_size * patience
-    model_path += "_" + loss_type + "_" + optimizer_type
+    model_path += "_" + loss_type + "_" + optimizer_type + "_" + scheduler_type
     lr = 1e-4
     wd = 1e-6
     # Model initialization
@@ -75,4 +76,4 @@ if __name__ == "__main__":
         ],
         logger=[tb_logger, csv_logger],
     )
-    trainer.fit(model, datamodule=kermany_datamodule)
+    trainer.fit(model, train_dataloaders=train_loader, val_dataloaders=val_loader)
