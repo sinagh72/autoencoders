@@ -19,6 +19,7 @@ class Autoencoder(pl.LightningModule):
         self.encoder = encoder
         self.decoder = decoder
 
+        self.loss_type = loss_type
         if loss_type == "mse":
             self.criterion = F.mse_loss
         elif loss_type == "cosine":
@@ -41,7 +42,14 @@ class Autoencoder(pl.LightningModule):
         """
         x, _ = batch  # We do not need the labels
         x_hat = self.forward(x)
-        loss = self.criterion(x, x_hat)
+        if self.loss_type == "mse":
+            loss = F.mse_loss(x, x_hat)
+        elif self.loss_type == "cosine":
+            x_flat = x.view(self.kwargs["batch_size"], -1)
+            x_hat_flat = x_hat.view(self.kwargs["batch_size"], -1)
+            loss = F.cosine_similarity(x_flat, x_hat_flat, dim=1).mean()
+        elif self.loss_type == "ssim":
+            loss = SSIMLoss()
         return loss
 
     def configure_optimizers(self):
@@ -49,19 +57,25 @@ class Autoencoder(pl.LightningModule):
             optimizer = optim.SGD(self.parameters(), lr=self.kwargs["lr"], weight_decay=self.kwargs["wd"])
         elif self.kwargs["optimizer_type"] == 'SGD_nesterov':
             optimizer = optim.SGD(self.parameters(), lr=self.kwargs["lr"], weight_decay=self.kwargs["wd"],
-                                  momentum=self.kwargs["momentum"], nesterov=True)
-        elif self.kwargs["optimizer_type"] == 'ADAM':
-            optimizer = optim.Adam(self.parameters(), lr=self.kwargs["lr"], weight_decay=self.kwargs["wd"])
+                                  nesterov=True)
+        elif self.kwargs["optimizer_type"] == 'Adam':
+            optimizer = optim.Adam(self.parameters(), lr=self.kwargs["lr"], weight_decay=self.kwargs["wd"],
+                                   betas=(0.9, 0.999), eps=1e-8)
         elif self.kwargs["optimizer_type"] == 'AdamW':
-            optimizer = optim.AdamW(self.parameters(), lr=self.kwargs["lr"], weight_decay=self.kwargs["wd"])
+            optimizer = optim.AdamW(self.parameters(), lr=self.kwargs["lr"], weight_decay=self.kwargs["wd"],
+                                    betas=(0.9, 0.999), eps=1e-8)
         elif self.kwargs["optimizer_type"] == 'RMSprop':
-            optimizer = optim.RMSprop(self.parameters(), lr=self.kwargs["lr"], weight_decay=self.kwargs["wd"])
+            optimizer = optim.RMSprop(self.parameters(), lr=self.kwargs["lr"], weight_decay=self.kwargs["wd"],
+                                      eps=1e-8)
         elif self.kwargs["optimizer_type"] == 'Adagrad':
-            optimizer = optim.Adagrad(self.parameters(), lr=self.kwargs["lr"], weight_decay=self.kwargs["wd"])
+            optimizer = optim.Adagrad(self.parameters(), lr=self.kwargs["lr"], weight_decay=self.kwargs["wd"],
+                                      eps=1e-8)
         elif self.kwargs["optimizer_type"] == 'Adadelta':
-            optimizer = optim.Adadelta(self.parameters(), lr=self.kwargs["lr"], weight_decay=self.kwargs["wd"])
+            optimizer = optim.Adadelta(self.parameters(), lr=self.kwargs["lr"], weight_decay=self.kwargs["wd"],
+                                       eps=1e-8)
         elif self.kwargs["optimizer_type"] == 'Nadam':
-            optimizer = optim.NAdam(self.parameters(), lr=self.kwargs["lr"], weight_decay=self.kwargs["wd"])
+            optimizer = optim.NAdam(self.parameters(), lr=self.kwargs["lr"], weight_decay=self.kwargs["wd"],
+                                    eps=1e-8)
         else:
             raise ValueError(f"Unknown optimizer type: {self.kwargs['optimizer_type']}")
 
@@ -85,13 +99,13 @@ class Autoencoder(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         loss = self._get_reconstruction_loss(batch)
-        self.log('train_loss', loss, on_step=True)
+        self.log('train_loss', loss, on_step=True, sync_dist=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         loss = self._get_reconstruction_loss(batch)
-        self.log('val_loss', loss, on_step=True)
+        self.log('val_loss', loss, on_step=True, sync_dist=True)
 
     def test_step(self, batch, batch_idx):
         loss = self._get_reconstruction_loss(batch)
-        self.log('test_loss', loss, on_step=True)
+        self.log('test_loss', loss, on_step=True, sync_dist=True)

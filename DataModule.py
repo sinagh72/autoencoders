@@ -8,7 +8,7 @@ from oct_dataset import OCTDataset, get_kermany_imgs
 
 class KermanyDataModule(pl.LightningDataModule):
     def __init__(self, data_dir: str, batch_size: int, classes: list, split=None, train_transform=None,
-                 test_transform=None):
+                 test_transform=None, num_workers=10):
         super().__init__()
         if split is None:
             split = [1]
@@ -18,7 +18,7 @@ class KermanyDataModule(pl.LightningDataModule):
         self.test_transform = test_transform
         self.split = split  # split percentage of training, validation, testing, the sum shoudl be 1
         self.classes = classes
-        self.workers = os.cpu_count()
+        self.workers = num_workers
 
     def prepare_data(self):
         # img_paths is a list of lists
@@ -42,7 +42,8 @@ class KermanyDataModule(pl.LightningDataModule):
                                         img_paths=self.img_paths[2])
 
     def train_dataloader(self):
-        return DataLoader(self.data_train, batch_size=self.batch_size, shuffle=True, pin_memory=False, drop_last=True)
+        return DataLoader(self.data_train, batch_size=self.batch_size, shuffle=True, pin_memory=False, drop_last=True,
+                          num_workers=self.workers)
 
     def val_dataloader(self):
         return DataLoader(self.data_val, batch_size=self.batch_size, shuffle=False, drop_last=False,
