@@ -47,7 +47,7 @@ class Autoencoder(pl.LightningModule):
         elif self.loss_type == "cosine":
             x_flat = x.view(self.kwargs["batch_size"], -1)
             x_hat_flat = x_hat.view(self.kwargs["batch_size"], -1)
-            loss = F.cosine_similarity(x_flat, x_hat_flat, dim=1).mean()
+            loss = 1 - F.cosine_similarity(x_flat, x_hat_flat, dim=1).mean()
         elif self.loss_type == "ssim":
             loss = SSIMLoss()
         return loss
@@ -57,7 +57,7 @@ class Autoencoder(pl.LightningModule):
             optimizer = optim.SGD(self.parameters(), lr=self.kwargs["lr"], weight_decay=self.kwargs["wd"])
         elif self.kwargs["optimizer_type"] == 'SGD_nesterov':
             optimizer = optim.SGD(self.parameters(), lr=self.kwargs["lr"], weight_decay=self.kwargs["wd"],
-                                  nesterov=True)
+                                  nesterov=True, momentum=0.9)
         elif self.kwargs["optimizer_type"] == 'Adam':
             optimizer = optim.Adam(self.parameters(), lr=self.kwargs["lr"], weight_decay=self.kwargs["wd"],
                                    betas=(0.9, 0.999), eps=1e-8)

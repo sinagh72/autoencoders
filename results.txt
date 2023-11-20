@@ -1,0 +1,45 @@
+/home/ssakib1/miniconda3/envs/ae/bin/python /home/ssakib1/projects/autoencoders/comparison.py
+Top 5 models with minimum train_loss and their corresponding steps:
+AdamW - StepLR: Train_Loss = 0.002011671895161271, Steps = 1038
+Adam - ReduceLROnPlateau: Train_Loss = 0.002084248000755906, Steps = 938
+Adam - StepLR: Train_Loss = 0.002085668034851551, Steps = 810
+Adam - CosineAnnealingLR: Train_Loss = 0.0024096413981169462, Steps = 629
+Nadam - StepLR: Train_Loss = 0.002485552802681923, Steps = 696
+
+Top 5 models with minimum steps and their corresponding train_loss:
+Adadelta - CosineAnnealingLR: Steps = 536, Train_Loss = 0.4527580738067627
+Adam - CosineAnnealingLR: Steps = 629, Train_Loss = 0.0024096413981169462
+RMSprop - CosineAnnealingLR: Steps = 629, Train_Loss = 0.002539975568652153
+Nadam - CosineAnnealingLR: Steps = 629, Train_Loss = 0.0025427506770938635
+AdamW - CosineAnnealingLR: Steps = 629, Train_Loss = 0.002596513833850622
+=============================================================
+Top 5 models with minimum val_loss_epoch and their corresponding steps:
+AdamW - StepLR: Val_Loss_Epoch = 0.0024376700166612864, Steps = 155
+Adam - StepLR: Val_Loss_Epoch = 0.0024461420252919197, Steps = 121
+Adam - ReduceLROnPlateau: Val_Loss_Epoch = 0.0024913062807172537, Steps = 140
+Nadam - StepLR: Val_Loss_Epoch = 0.002955241594463587, Steps = 104
+RMSprop - StepLR: Val_Loss_Epoch = 0.0029862243682146072, Steps = 114
+
+Top 5 models with minimum steps and their corresponding val_loss_epoch:
+Adadelta - CosineAnnealingLR: Steps = 80, Val_Loss_Epoch = 0.4545215368270874
+Adam - CosineAnnealingLR: Steps = 94, Val_Loss_Epoch = 0.003048836952075362
+Nadam - CosineAnnealingLR: Steps = 94, Val_Loss_Epoch = 0.0032128551974892616
+RMSprop - CosineAnnealingLR: Steps = 94, Val_Loss_Epoch = 0.0032140000257641077
+AdamW - CosineAnnealingLR: Steps = 94, Val_Loss_Epoch = 0.0032952851615846157
+=============================================================
+Top 5 models with minimum val_loss_step and their corresponding steps:
+AdamW - StepLR: Val_Loss_Step = 0.001521005411632359, Steps = 2790
+Adam - StepLR: Val_Loss_Step = 0.0015556062571704388, Steps = 2178
+Adam - ReduceLROnPlateau: Val_Loss_Step = 0.001565864309668541, Steps = 2520
+Nadam - StepLR: Val_Loss_Step = 0.0022229107562452555, Steps = 1872
+RMSprop - StepLR: Val_Loss_Step = 0.002227475168183446, Steps = 2052
+
+Top 5 models with minimum steps and their corresponding val_loss_step:
+Adadelta - CosineAnnealingLR: Steps = 1440, Val_Loss_Step = 0.4294004440307617
+Adam - CosineAnnealingLR: Steps = 1692, Val_Loss_Step = 0.0022509146947413683
+Nadam - CosineAnnealingLR: Steps = 1692, Val_Loss_Step = 0.002379455603659153
+RMSprop - CosineAnnealingLR: Steps = 1692, Val_Loss_Step = 0.002400696277618408
+AdamW - CosineAnnealingLR: Steps = 1692, Val_Loss_Step = 0.0024044658057391644
+=============================================================
+
+Process finished with exit code 0
