@@ -12,12 +12,11 @@ import subsetsum as sb
 
 class OCTDataset(Dataset):
 
-    def __init__(self, data_dir, img_type="L", transform=None, n_views=1, img_paths=None, nst_path=None,
+    def __init__(self, data_dir, img_type="L", transform=None, img_paths=None, nst_path=None,
                  nst_prob=0, **kwargs):
         self.data_dir = data_dir.replace("\\", "/")  # root directory
         self.transform = transform  # transform functions
         self.img_type = img_type  # the type of image L, R
-        self.n_views = n_views  # number of different transformations
         self.nst_prob = nst_prob  # the probability of using NST generated imgs
         self.nst_path = nst_path  # path to the nst file
         self.kwargs = kwargs
@@ -27,20 +26,10 @@ class OCTDataset(Dataset):
         img_path, label = self.img_paths[index]
         img_path = img_path.replace("\\", "/")  # fixing the path for windows os
         img_name = img_path.split(self.data_dir)[1].split("/")[-1]
-        img_views = []
-        for i in range(self.n_views):
-            if self.nst_path is not None and random.uniform(0, 1) < self.nst_prob:
-                img_views.append(self.load_nst_img(img_name))  # return a list of transformed nst images
-            else:
-                img_views.append(self.load_img(img_path))  # return an image
-
-            if self.transform is not None:
-                img_views[i] = self.transform(img_views[i])
-            # image.show()
-        # img = torch.from_numpy(img).permute(2, 0, 1).float()
-        if len(img_views) == 1:
-            img_views = img_views[0]
-        results = (img_views, label)
+        img_view = self.load_img(img_path)  # return an image
+        if self.transform is not None:
+            img_view = self.transform(img_view)
+        results = (img_view, label)
         return results
 
     def __len__(self):
@@ -78,7 +67,6 @@ def get_srinivasan_imgs(data_dir: str, **kwargs):
     :param data_dir:
     :param kwargs:
         - ignore_folders (np.array): indices of files to ignore
-        - sub_folders_name (str): path containing the subfolders
         - classes (list of tuples): ex: [("NORMAL", 0), ...]
     :return:
     """
@@ -92,7 +80,7 @@ def get_srinivasan_imgs(data_dir: str, **kwargs):
         if any(item == int(img_file.replace("AMD", "").replace("NORMAL", "").replace("DME", ""))
                for item in kwargs["ignore_folders"]):
             continue
-        folder = os.path.join(data_dir, img_file, kwargs["sub_folders_name"])
+        folder = os.path.join(data_dir, img_file, "TIFFs/8bitTIFFs")
         imgs_path += [(os.path.join(folder, id), get_class(os.path.join(folder, id), kwargs["classes"]))
                       for id in os.listdir(folder)]
     return imgs_path
