@@ -188,7 +188,7 @@ def get_oct500(list_ids, data_dir, class_label, filter_img=True):
             if filter_img and (("6mm" in data_dir and 160 <= int(img[:-4]) <= 240) or
                                ("3mm" in data_dir and 100 <= int(img[:-4]) <= 180)):
                 img_paths.append((os.path.join(file_path, img), class_label))
-            else:
+            elif filter_img is False:
                 img_paths.append((os.path.join(file_path, img), class_label))
         # img_paths += [(os.path.join(file_path, img), class_label)
         #               for img in os.listdir(file_path)]

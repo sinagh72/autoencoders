@@ -97,9 +97,12 @@ class OCT500DataModule(KermanyDataModule):
                          test_transform, num_workers)
 
     def prepare_data(self):
-        self.train_imgs = get_oct500_imgs(self.data_dir + "OCTA_6mm", classes=self.classes, split=self.split, mode="train")
-        self.val_imgs = get_oct500_imgs(self.data_dir + "OCTA_6mm", classes=self.classes, split=self.split, mode="val")
-        self.test_imgs = get_oct500_imgs(self.data_dir + "OCTA_6mm", classes=self.classes, split=self.split, mode="test")
+        self.train_imgs = get_oct500_imgs(self.data_dir + "OCTA_6mm", classes=self.classes,
+                                          split=self.split, mode="train", filter_img=True)
+        self.val_imgs = get_oct500_imgs(self.data_dir + "OCTA_6mm", classes=self.classes,
+                                        split=self.split, mode="val", filter_img=True)
+        self.test_imgs = get_oct500_imgs(self.data_dir + "OCTA_6mm", classes=self.classes,
+                                         split=self.split, mode="test", filter_img=True)
 
     def setup(self, stage: str) -> None:
         # Assign Train for use in Dataloaders
