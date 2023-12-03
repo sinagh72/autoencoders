@@ -18,14 +18,7 @@ class Autoencoder(pl.LightningModule):
         # Creating encoder and decoder
         self.encoder = encoder
         self.decoder = decoder
-
         self.loss_type = loss_type
-        if loss_type == "mse":
-            self.criterion = F.mse_loss
-        elif loss_type == "cosine":
-            self.criterion = F.cosine_similarity
-        elif loss_type == "ssim":
-            self.criterion = SSIMLoss().to(device)
         self.kwargs = kwargs
 
     def forward(self, x):
@@ -109,3 +102,33 @@ class Autoencoder(pl.LightningModule):
     def test_step(self, batch, batch_idx):
         loss = self._get_reconstruction_loss(batch)
         self.log('test_loss', loss, on_step=True, sync_dist=True)
+
+
+class MaskedAutoencoder(Autoencoder):
+    def __init__(self, encoder, decoder, loss_type, device, **kwargs):
+        super().__init__(encoder, decoder, loss_type, device, **kwargs)
+
+    def forward(self, x):
+        """
+        The forward function takes in an image and returns the reconstructed image
+        """
+        img, mask = x
+        z, m_hat = self.encoder(x, mask)
+        x_hat = self.decoder(z)
+        return x_hat, m_hat
+
+    def _get_reconstruction_loss(self, batch):
+        """
+        Given a batch of images, this function returns the reconstruction loss (MSE in our case)
+        """
+        (img, mask), _ = batch  # We do not need the labels
+        img_hat, m_hat = self.forward((img, mask))
+        if self.loss_type == "l1":
+            loss_recon = F.l1_loss(img, img_hat, reduction='none')
+            # 3 is input channels
+            loss = (loss_recon * m_hat).sum() / (m_hat.sum() + 1e-8) / 3
+        elif self.loss_type == "cosine":
+            x_flat = img.view(self.kwargs["batch_size"], -1)
+            x_hat_flat = img_hat.view(self.kwargs["batch_size"], -1)
+            loss = 1 - F.cosine_similarity(x_flat, x_hat_flat, dim=1).mean()
+        return loss
