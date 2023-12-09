@@ -17,14 +17,15 @@ def extract_tensorboard_data(log_dir):
         data[tag] = [event.value for event in events]
     return data
 
-import matplotlib.pyplot as plt
-import itertools
-
 
 import matplotlib.pyplot as plt
 import itertools
 
-def plot_and_analyze_metrics(all_data, metric, loss_type, top_n=5):
+import matplotlib.pyplot as plt
+import itertools
+
+
+def plot_and_analyze_metrics(all_data, metric, top_n=5):
     """
     Plots the specified metric for all models and prints the top_n models
     based on both the metric and steps.
@@ -43,11 +44,10 @@ def plot_and_analyze_metrics(all_data, metric, loss_type, top_n=5):
 
     plt.figure(figsize=(12, 7))
     for log_dir, data in all_data.items():
-        config = log_dir.split(loss_type)[1]
-        optimizer = config.split("_")[1]
-        scheduler = config.split("_")[2].split("/")[0]
-        label = f'{optimizer} - {scheduler}'
-
+        loss_type = log_dir.split("_")[2]
+        optimizer = log_dir.split("_")[3]
+        scheduler = log_dir.split("_")[4].split("/")[0]
+        label = f'{loss_type} - {optimizer} - {scheduler}'
         if metric in data:
             step_range = range(len(data[metric]))
             plt.plot(step_range, data[metric],
@@ -60,8 +60,8 @@ def plot_and_analyze_metrics(all_data, metric, loss_type, top_n=5):
 
     plt.xlabel('Step', fontsize=12)
     plt.ylabel(metric.replace('_', ' ').title(), fontsize=12)
-    plt.title(f'{metric.replace("_", " ").title()} Across Models using {loss_type.upper()} Loss', fontsize=14)
-    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.title(f'{metric.replace("_", " ").title()} Across Models', fontsize=14)
+    plt.legend(loc='upper right')
     plt.tight_layout()
     plt.show()
 
@@ -82,14 +82,15 @@ def plot_and_analyze_metrics(all_data, metric, loss_type, top_n=5):
         print(f"{label}: Steps = {steps}, {metric.title()} = {value}")
     print("=============================================================")
 
+
 # Example usage
-loss_type = "mse"
-root = "./checkpoints"
-log_dirs = glob.glob(root + f"/**{loss_type}**")
+
+root = "./cae_checkpoints/best-training"
+log_dirs = glob.glob(root + f"/**")
 log_dirs = [p + "/tb_log/mce/version_0" for p in log_dirs]
 all_data = {log_dir: extract_tensorboard_data(log_dir) for log_dir in log_dirs}
 
 # Example usage
-plot_and_analyze_metrics(all_data, 'train_loss', loss_type)
-plot_and_analyze_metrics(all_data, 'val_loss_epoch', loss_type)
-plot_and_analyze_metrics(all_data, 'val_loss_step', loss_type)
+plot_and_analyze_metrics(all_data, 'train_loss')
+plot_and_analyze_metrics(all_data, 'val_loss_epoch')
+plot_and_analyze_metrics(all_data, 'val_loss_step')

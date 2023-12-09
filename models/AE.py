@@ -25,9 +25,9 @@ class Autoencoder(pl.LightningModule):
         """
         The forward function takes in an image and returns the reconstructed image
         """
-        z = self.encoder(x)
-        x_hat = self.decoder(z)
-        return x_hat
+        z = self.encoder(x.contiguous())
+        x_hat = self.decoder(z.contiguous())
+        return x_hat.contiguous()
 
     def _get_reconstruction_loss(self, batch):
         """
@@ -48,7 +48,7 @@ class Autoencoder(pl.LightningModule):
     def configure_optimizers(self):
         if self.kwargs["optimizer_type"] == 'SGD':
             optimizer = optim.SGD(self.parameters(), lr=self.kwargs["lr"], weight_decay=self.kwargs["wd"])
-        elif self.kwargs["optimizer_type"] == 'SGD_nesterov':
+        elif self.kwargs["optimizer_type"] == 'Nesterov':
             optimizer = optim.SGD(self.parameters(), lr=self.kwargs["lr"], weight_decay=self.kwargs["wd"],
                                   nesterov=True, momentum=0.9)
         elif self.kwargs["optimizer_type"] == 'Adam':
@@ -95,6 +95,7 @@ class Autoencoder(pl.LightningModule):
         self.log('train_loss', loss, on_step=True, sync_dist=True)
         return loss
 
+
     def validation_step(self, batch, batch_idx):
         loss = self._get_reconstruction_loss(batch)
         self.log('val_loss', loss, on_step=True, sync_dist=True)
@@ -113,8 +114,8 @@ class MaskedAutoencoder(Autoencoder):
         The forward function takes in an image and returns the reconstructed image
         """
         img, mask = x
-        z, m_hat = self.encoder(x, mask)
-        x_hat = self.decoder(z)
+        z, m_hat = self.encoder(img.contiguous(), mask.contiguous())
+        x_hat = self.decoder(z.contiguous())
         return x_hat, m_hat
 
     def _get_reconstruction_loss(self, batch):
@@ -125,8 +126,7 @@ class MaskedAutoencoder(Autoencoder):
         img_hat, m_hat = self.forward((img, mask))
         if self.loss_type == "l1":
             loss_recon = F.l1_loss(img, img_hat, reduction='none')
-            # 3 is input channels
-            loss = (loss_recon * m_hat).sum() / (m_hat.sum() + 1e-8) / 3
+            loss = ((loss_recon * m_hat).sum() / (m_hat.sum() + 1e-8)) / 3
         elif self.loss_type == "cosine":
             x_flat = img.view(self.kwargs["batch_size"], -1)
             x_hat_flat = img_hat.view(self.kwargs["batch_size"], -1)

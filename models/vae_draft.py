@@ -61,13 +61,13 @@ class EfficientNetDecoder(nn.Module):
         # print("type of x begins", type(x))
         # print("shape of x begins", x.shape if isinstance(x,torch.Tensor) else "Not a tensor")
         x = self.decode_block1(x)
-        print("testing decode block1", x.shape)
+        # print("testing decode block1", x.shape)
         x = self.decode_block2(x)
-        print("testing decode block2", x.shape)
+        # print("testing decode block2", x.shape)
         x = self.decode_block3(x)
-        print("testing decode block3", x.shape)
+        # print("testing decode block3", x.shape)
         x = self.decode_block4(x)
-        print("testing decode block4", x.shape)
+        # print("testing decode block4", x.shape)
 
 
         # The final output layer to get the right number of channels
@@ -109,7 +109,7 @@ class VariationalAutoencoder(nn.Module):
 
     def forward(self, x):
         features = self.encoder(x)
-        print("after encoder feature size is", features.shape)
+        # print("after encoder feature size is", features.shape)
         #flatten the features to match expected self.fc_mu dim
         # features = features.view(features.size(0), -1)
 

@@ -1,4 +1,6 @@
 import copy
+import glob
+import json
 import os
 import lightning.pytorch as pl
 import torch
@@ -14,7 +16,7 @@ from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch import loggers as pl_loggers
 
 if __name__ == "__main__":
-    max_epochs = 10
+    max_epochs = 5
     set_seed(10)
 
 
@@ -31,7 +33,7 @@ if __name__ == "__main__":
     srinivasan_datamodule = SrinivasanDataModule(data_dir=srinivasan_dataset_path,
                                                  batch_size=batch_size,
                                                  classes=srinivasan_classes,
-                                                 split=[0.8, 0, 0.2],
+                                                 split=[0.7, 0, 0.3],
                                                  train_transform=get_train_transformation(size=img_size),
                                                  test_transform=get_test_transformation(size=img_size),
                                                  num_workers=torch.cuda.device_count() * 2
@@ -40,6 +42,7 @@ if __name__ == "__main__":
     srinivasan_datamodule.prepare_data()
     srinivasan_datamodule.setup("train")
     srinivasan_datamodule.setup("test")
+    srinivasan_datamodule.setup("val")
     srinivasan_train_loader = srinivasan_datamodule.train_dataloader()
 
     """oct500"""
@@ -62,20 +65,21 @@ if __name__ == "__main__":
     oct500_datamodule.prepare_data()
     oct500_datamodule.setup("train")
     oct500_datamodule.setup("test")
+    oct500_datamodule.setup("val")
     oct500_train_loader = oct500_datamodule.train_dataloader()
 
     loss_types = "mse", "cosine"
     optimizer_types = ["SGD", "SGD_nesterov", "Adam", "AdamW", "RMSprop", "Adagrad", "Adadelta", "Nadam"]
     scheduler_types = ["StepLR", "CosineAnnealingLR", "ReduceLROnPlateau"]
-    patience = 3
-    srinivasan_step_size = len(srinivasan_train_loader) // batch_size * patience
     lr = 1e-4
     wd = 1e-6
+    save_path = "cae_checkpoints/"
     for scheduler_type in scheduler_types:
         for optimizer_type in optimizer_types:
             for loss_type in loss_types:
-                model_path = "checkpoints/cae_" + loss_type + "_" + optimizer_type + "_" + scheduler_type
+                model_type = "cae_" + loss_type + "_" + optimizer_type + "_" + scheduler_type
                 # Model initialization
+                model_path = glob.glob(os.path.join("checkpoints/"+model_type, "mce*.ckpt"))[0]
                 cae = Autoencoder.load_from_checkpoint(model_path,
                                                        encoder=get_EfficientNetEncoder(),
                                                        decoder=EfficientNetDecoder(),
@@ -91,46 +95,45 @@ if __name__ == "__main__":
                                             wd=wd)
                 # Set up logging for training progress
                 srinivasan_tb_logger = TensorBoardLogger(
-                    save_dir=os.path.join(model_path.replace("checkpoints", "checkpoints_srinivasan")))
+                    save_dir=os.path.join(save_path, "srinivasan", model_type))
                 # Define early stopping criteria
                 monitor = "val_loss"
                 mode = "min"
-                srinivasan_early_stopping = EarlyStopping(monitor=monitor, patience=patience, verbose=False, mode=mode)
                 # Initialize the trainer and start training
                 trainer = pl.Trainer(
                     strategy="ddp",
-                    default_root_dir=model_path,
+                    default_root_dir=os.path.join(save_path, "srinivasan", model_type),
                     accelerator="gpu",
                     devices=4,
                     max_epochs=max_epochs,
-                    callbacks=[
-                        srinivasan_early_stopping,
-                        ModelCheckpoint(dirpath=model_path, filename="srinivasan-{epoch}-{val_loss:.2f}", save_top_k=1,
-                                        save_weights_only=True, mode=mode, monitor=monitor),
-                    ],
                     logger=[srinivasan_tb_logger],
+                    log_every_n_steps=1
                 )
                 trainer.fit(srinivasan_model, srinivasan_datamodule)
-                ### OCT500
-                oct500_model = ClsModel(encoder=copy.deepcopy(cae.encoder), classes=oct500_classes, lr=lr,
-                                        wd=wd)
-                # Set up logging for training progress
-                oct500_tb_logger = TensorBoardLogger(
-                    save_dir=os.path.join(model_path.replace("checkpoints", "checkpoints_oct500")))
-                # Define early stopping criteria
-                oct500_early_stopping = EarlyStopping(monitor=monitor, patience=patience, verbose=False, mode=mode)
-                # Initialize the trainer and start training
-                trainer = pl.Trainer(
-                    strategy="ddp",
-                    default_root_dir=model_path,
-                    accelerator="gpu",
-                    devices=4,
-                    max_epochs=max_epochs,
-                    callbacks=[
-                        oct500_early_stopping,
-                        ModelCheckpoint(dirpath=model_path, filename="oct500-{epoch}-{val_loss:.2f}", save_top_k=1,
-                                        save_weights_only=True, mode=mode, monitor=monitor),
-                    ],
-                    logger=[oct500_tb_logger],
-                )
-                trainer.fit(oct500_model, oct500_datamodule)
+                res = json.dumps(trainer.test(srinivasan_model, srinivasan_datamodule.test_dataloader()))
+                f = open(os.path.join(save_path, "srinivasan", model_type+"_results.json"), "w")
+                f.write(res)
+                f.close()
+
+                """OCT-500"""
+                # oct500_model = ClsModel(encoder=copy.deepcopy(cae.encoder), classes=oct500_classes, lr=lr,
+                #                         wd=wd)
+                # # Set up logging for training progress
+                # oct500_tb_logger = TensorBoardLogger(
+                #     save_dir=os.path.join(save_path, "oct500", model_type))
+                # # Initialize the trainer and start training
+                # trainer = pl.Trainer(
+                #     strategy="ddp",
+                #     default_root_dir=os.path.join(save_path, "oct500", model_type),
+                #     accelerator="gpu",
+                #     devices=4,
+                #     max_epochs=max_epochs,
+                #     logger=[oct500_tb_logger],
+                #     log_every_n_steps=1
+                # )
+                # trainer.fit(oct500_model, oct500_datamodule)
+                # res = json.dumps(trainer.test(oct500_model, oct500_datamodule.test_dataloader()))
+                # f = open(os.path.join(save_path, "oct500", model_type + "_results.json"), "w")
+                # f.write(res)
+                # f.close()
+

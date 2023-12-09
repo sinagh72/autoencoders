@@ -1,7 +1,9 @@
 import lightning.pytorch as pl
 import torch
+from timm.layers import SelectAdaptivePool2d
 from torch import optim, nn
 import torch.nn.functional as F
+from torch.nn import Flatten
 from torchmetrics import F1Score, AUROC
 from torchmetrics.classification import MulticlassPrecision
 from torchmetrics.classification.accuracy import MulticlassAccuracy
@@ -74,7 +76,7 @@ class BaseNet(pl.LightningModule):
         return self.model(x)
 
     def _calculate_loss(self, batch):
-        imgs, labels = batch["img"], batch["label"]
+        imgs, labels = batch
         preds = self.forward(imgs)
         loss = F.cross_entropy(preds, labels)
         preds = preds.argmax(dim=-1) if len(self.classes) == 2 else preds
@@ -187,6 +189,7 @@ class MLP(nn.Module):
 class ClsModel(BaseNet):
     def __init__(self, encoder, **kwargs):
         super().__init__(**kwargs)
+        encoder.global_pool = SelectAdaptivePool2d(pool_type="avg", flatten=True)
         self.model = nn.Sequential(encoder,
-                                   MLP(encoder.head.out_features, len(kwargs["classes"]))
+                                   MLP(1280, len(kwargs["classes"]))
                                    )

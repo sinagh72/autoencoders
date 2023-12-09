@@ -95,12 +95,6 @@ class SimMimEncoder(nn.Module):
         self.encoder = encoder
         self.encoder_stride = 32
 
-        self.decoder = nn.Sequential(
-            nn.Conv2d(
-                in_channels=self.encoder.norm.normalized_shape[0],
-                out_channels=self.encoder_stride ** 2 * 3, kernel_size=1),
-            nn.PixelShuffle(self.encoder_stride),
-        )
         self.mask_token = nn.Parameter(torch.zeros(1, 1, self.encoder.features[0][0].out_channels))
         trunc_normal_(self.mask_token, mean=0., std=.02)
 
@@ -115,9 +109,10 @@ class SimMimEncoder(nn.Module):
         z = z * (1. - w) + mask_tokens * w
         z = self.encoder.features[1:](z)
         z = self.encoder.norm(z)
+        z = self.encoder.permute(z).contiguous()
         mask = mask.repeat_interleave(self.patch_size[0], 1).repeat_interleave(self.patch_size[1], 2).unsqueeze(
             1).contiguous()
-        return self.encoder.permute(z), mask
+        return z, mask
 
 
 class SimMimDecoder(nn.Module):

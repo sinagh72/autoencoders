@@ -64,6 +64,7 @@ def get_EfficientNetEncoder():
         drop_rate=0.1,
         drop_path_rate=0.1,
     )
+
     model.global_pool = nn.Identity()
     return (model)
 

@@ -15,7 +15,6 @@ if __name__ == "__main__":
     max_epochs = 200
     set_seed(10)
 
-
     kermany_classes = [("NORMAL", 0),
                        ("DRUSEN", 1),
                        ("DME", 2),
@@ -30,7 +29,7 @@ if __name__ == "__main__":
                                            classes=kermany_classes,
                                            split=[0.95, 0.05],
                                            train_transform=get_train_transformation(size=img_size),
-                                           num_workers=torch.cuda.device_count()*2
+                                           num_workers=torch.cuda.device_count() * 2
                                            )
     # preparing config
     kermany_datamodule.prepare_data()
@@ -41,10 +40,10 @@ if __name__ == "__main__":
     print(len(train_loader))
 
     loss_types = "mse", "cosine"
-    optimizer_types = ["SGD", "SGD_nesterov", "Adam", "AdamW", "RMSprop", "Adagrad", "Adadelta", "Nadam"]
+    optimizer_types = ["SGD", "Nesterov", "Adam", "AdamW", "RMSprop", "Adagrad", "Adadelta", "Nadam"]
     scheduler_types = ["StepLR", "CosineAnnealingLR", "ReduceLROnPlateau"]
     patience = 10
-    step_size = len(train_loader)//batch_size * patience
+    step_size = len(train_loader) // batch_size * patience
     lr = 1e-4
     wd = 1e-6
     for scheduler_type in scheduler_types:
@@ -74,9 +73,10 @@ if __name__ == "__main__":
                 early_stopping = EarlyStopping(monitor=monitor, patience=patience, verbose=False, mode=mode)
                 # Initialize the trainer and start training
                 trainer = pl.Trainer(
-                    strategy="ddp",
+                    strategy="ddp_find_unused_parameters_true",
                     default_root_dir=model_path,
                     accelerator="gpu",
+                    log_every_n_steps=1,
                     devices=4,
                     max_epochs=max_epochs,
                     callbacks=[

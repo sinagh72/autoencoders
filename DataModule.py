@@ -61,16 +61,21 @@ class SrinivasanDataModule(KermanyDataModule):
                  test_transform=None, num_workers=10):
         super().__init__(data_dir, batch_size, classes, split, train_transform,
                          test_transform, num_workers)
-        self.files = [range(1, 16)]
+        self.files = [i for i in range(1,16)]
 
     def prepare_data(self):
-        train_subj = self.files[:int(self.files * self.split[0])]
-        val_subj = self.files[int(self.files * self.split[0]):int(self.files * self.split[1])]
-        test_subj = self.files[int(self.files * self.split[0]) + int(self.files * self.split[1]):]
+        train_idx = int(len(self.files) * self.split[0])
+        val_dix = int(len(self.files) * self.split[1])
+        train_subj = self.files[:train_idx]
+        val_subj = self.files[train_idx:train_idx + val_dix]
+        test_subj = self.files[train_idx + val_dix:]
         # img_paths is a list of lists
-        self.train_imgs = get_srinivasan_imgs(data_dir=self.data_dir, ignore_folders=train_subj, classes=self.classes)
-        self.val_imgs = get_srinivasan_imgs(data_dir=self.data_dir, ignore_folders=val_subj, classes=self.classes)
-        self.test_imgs = get_srinivasan_imgs(data_dir=self.data_dir, ignore_folders=test_subj, classes=self.classes)
+        self.train_imgs = get_srinivasan_imgs(data_dir=self.data_dir, ignore_folders=val_subj + test_subj,
+                                              classes=self.classes)
+        self.val_imgs = get_srinivasan_imgs(data_dir=self.data_dir, ignore_folders=test_subj + train_subj,
+                                            classes=self.classes)
+        self.test_imgs = get_srinivasan_imgs(data_dir=self.data_dir, ignore_folders=val_subj + train_subj,
+                                             classes=self.classes)
 
     def setup(self, stage: str) -> None:
         # Assign Train for use in Dataloaders
@@ -88,21 +93,23 @@ class SrinivasanDataModule(KermanyDataModule):
         if stage == "test":
             self.data_test = OCTDataset(transform=self.test_transform, data_dir=self.data_dir,
                                         img_paths=self.test_imgs)
+            print("test data len:", len(self.data_test))
 
 
 class OCT500DataModule(KermanyDataModule):
     def __init__(self, data_dir: str, batch_size: int, classes: list, split=None, train_transform=None,
-                 test_transform=None, num_workers=10):
+                 test_transform=None, num_workers=10, filter_img: bool = True):
         super().__init__(data_dir, batch_size, classes, split, train_transform,
                          test_transform, num_workers)
+        self.filter_img = filter_img
 
     def prepare_data(self):
-        self.train_imgs = get_oct500_imgs(self.data_dir + "OCTA_6mm", classes=self.classes,
-                                          split=self.split, mode="train", filter_img=True)
-        self.val_imgs = get_oct500_imgs(self.data_dir + "OCTA_6mm", classes=self.classes,
-                                        split=self.split, mode="val", filter_img=True)
-        self.test_imgs = get_oct500_imgs(self.data_dir + "OCTA_6mm", classes=self.classes,
-                                         split=self.split, mode="test", filter_img=True)
+        self.train_imgs = get_oct500_imgs(self.data_dir + "/OCTA_6mm", classes=self.classes, split=self.split,
+                                          mode="train", filter_img=self.filter_img)
+        self.val_imgs = get_oct500_imgs(self.data_dir + "/OCTA_6mm", classes=self.classes, split=self.split,
+                                        mode="val", filter_img=self.filter_img)
+        self.test_imgs = get_oct500_imgs(self.data_dir + "/OCTA_6mm", classes=self.classes, split=self.split,
+                                         mode="test", filter_img=self.filter_img)
 
     def setup(self, stage: str) -> None:
         # Assign Train for use in Dataloaders
@@ -112,13 +119,12 @@ class OCT500DataModule(KermanyDataModule):
             print("train data len:", len(self.data_train))
         # Assign val split(s) for use in Dataloaders
         elif stage == "val":
-            self.img_paths = get_oct500_imgs(self.data_dir + "OCTA_6mm", classes=self.classes)
             self.data_val = OCTDataset(transform=self.train_transform, data_dir=self.data_dir,
                                        img_paths=self.val_imgs)
             print("val data len:", len(self.data_val))
 
         # Assign Test split(s) for use in Dataloaders
         if stage == "test":
-            self.img_paths = get_oct500_imgs(self.data_dir + "OCTA_6mm")
             self.data_test = OCTDataset(transform=self.test_transform, data_dir=self.data_dir,
                                         img_paths=self.test_imgs)
+            print("test data len:", len(self.data_test))
