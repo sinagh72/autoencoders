@@ -1,4 +1,5 @@
 import copy
+import glob
 import os
 import lightning.pytorch as pl
 import torch
@@ -31,7 +32,7 @@ if __name__ == "__main__":
     srinivasan_datamodule = SrinivasanDataModule(data_dir=srinivasan_dataset_path,
                                                  batch_size=batch_size,
                                                  classes=srinivasan_classes,
-                                                 split=[0.8, 0, 0.2],
+                                                 split=[0.7, 0, 0.3],
                                                  train_transform=get_train_transformation(size=img_size),
                                                  test_transform=get_test_transformation(size=img_size),
                                                  num_workers=torch.cuda.device_count() * 2
@@ -39,6 +40,7 @@ if __name__ == "__main__":
     # preparing config
     srinivasan_datamodule.prepare_data()
     srinivasan_datamodule.setup("train")
+    srinivasan_datamodule.setup("val")
     srinivasan_datamodule.setup("test")
     srinivasan_train_loader = srinivasan_datamodule.train_dataloader()
 
@@ -61,11 +63,12 @@ if __name__ == "__main__":
     # preparing config
     oct500_datamodule.prepare_data()
     oct500_datamodule.setup("train")
+    oct500_datamodule.setup("val")
     oct500_datamodule.setup("test")
     oct500_train_loader = oct500_datamodule.train_dataloader()
 
     loss_types = "mse", "cosine"
-    optimizer_types = ["SGD", "SGD_nesterov", "Adam", "AdamW", "RMSprop", "Adagrad", "Adadelta", "Nadam"]
+    optimizer_types = ["SGD", "Nesterov", "Adam", "AdamW", "RMSprop", "Adagrad", "Adadelta", "Nadam"]
     scheduler_types = ["StepLR", "CosineAnnealingLR", "ReduceLROnPlateau"]
     patience = 3
     srinivasan_step_size = len(srinivasan_train_loader) // batch_size * patience
@@ -74,7 +77,9 @@ if __name__ == "__main__":
     for scheduler_type in scheduler_types:
         for optimizer_type in optimizer_types:
             for loss_type in loss_types:
-                model_path = "checkpoints/vae_" + loss_type + "_" + optimizer_type + "_" + scheduler_type
+                model_type = "vae_" + loss_type + "_" + optimizer_type + "_" + scheduler_type
+                model_path = glob.glob(os.path.join("vae_checkpoints", "train", model_type, "vae*.ckpt"))[0]
+
                 # Model initialization
                 vae = Autoencoder.load_from_checkpoint(model_path,
                                                        encoder=VariationalAutoencoder(1280),
@@ -91,7 +96,7 @@ if __name__ == "__main__":
                                             wd=wd)
                 # Set up logging for training progress
                 srinivasan_tb_logger = TensorBoardLogger(
-                    save_dir=os.path.join(model_path.replace("checkpoints", "checkpoints_srinivasan")))
+                    save_dir=os.path.join(model_path.replace("vae_checkpoints", "checkpoints_srinivasan")))
                 # Define early stopping criteria
                 monitor = "val_loss"
                 mode = "min"
@@ -116,7 +121,7 @@ if __name__ == "__main__":
                                         wd=wd)
                 # Set up logging for training progress
                 oct500_tb_logger = TensorBoardLogger(
-                    save_dir=os.path.join(model_path.replace("checkpoints", "checkpoints_oct500")))
+                    save_dir=os.path.join(model_path.replace("vae_checkpoints", "checkpoints_oct500")))
                 # Define early stopping criteria
                 oct500_early_stopping = EarlyStopping(monitor=monitor, patience=patience, verbose=False, mode=mode)
                 # Initialize the trainer and start training

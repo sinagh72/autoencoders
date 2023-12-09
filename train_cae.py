@@ -50,7 +50,7 @@ if __name__ == "__main__":
     for scheduler_type in scheduler_types:
         for optimizer_type in optimizer_types:
             for loss_type in loss_types:
-                model_path = "checkpoints/cae_" + loss_type + "_" + optimizer_type + "_" + scheduler_type
+                model_path = "vae_checkpoints/cae_" + loss_type + "_" + optimizer_type + "_" + scheduler_type
                 if os.path.exists(model_path):
                     continue
 

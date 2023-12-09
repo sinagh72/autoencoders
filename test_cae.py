@@ -18,9 +18,6 @@ from lightning.pytorch import loggers as pl_loggers
 if __name__ == "__main__":
     max_epochs = 5
     set_seed(10)
-
-
-
     img_size = 256
     batch_size = 72
     load_dotenv(dotenv_path="./config/.env")
@@ -69,7 +66,7 @@ if __name__ == "__main__":
     oct500_train_loader = oct500_datamodule.train_dataloader()
 
     loss_types = "mse", "cosine"
-    optimizer_types = ["SGD", "SGD_nesterov", "Adam", "AdamW", "RMSprop", "Adagrad", "Adadelta", "Nadam"]
+    optimizer_types = ["SGD", "Nesterov", "Adam", "AdamW", "RMSprop", "Adagrad", "Adadelta", "Nadam"]
     scheduler_types = ["StepLR", "CosineAnnealingLR", "ReduceLROnPlateau"]
     lr = 1e-4
     wd = 1e-6
@@ -79,7 +76,7 @@ if __name__ == "__main__":
             for loss_type in loss_types:
                 model_type = "cae_" + loss_type + "_" + optimizer_type + "_" + scheduler_type
                 # Model initialization
-                model_path = glob.glob(os.path.join("checkpoints/"+model_type, "mce*.ckpt"))[0]
+                model_path = glob.glob(os.path.join(save_path, "train", model_type, "mce*.ckpt"))[0]
                 cae = Autoencoder.load_from_checkpoint(model_path,
                                                        encoder=get_EfficientNetEncoder(),
                                                        decoder=EfficientNetDecoder(),
@@ -111,7 +108,7 @@ if __name__ == "__main__":
                 )
                 trainer.fit(srinivasan_model, srinivasan_datamodule)
                 res = json.dumps(trainer.test(srinivasan_model, srinivasan_datamodule.test_dataloader()))
-                f = open(os.path.join(save_path, "srinivasan", model_type+"_results.json"), "w")
+                f = open(os.path.join(save_path, "srinivasan", model_type + "_results.json"), "w")
                 f.write(res)
                 f.close()
 
@@ -136,4 +133,3 @@ if __name__ == "__main__":
                 # f = open(os.path.join(save_path, "oct500", model_type + "_results.json"), "w")
                 # f.write(res)
                 # f.close()
-

@@ -13,7 +13,7 @@ from lightning.pytorch import loggers as pl_loggers
 if __name__ == "__main__":
     max_epochs = 100
     set_seed(10)
-    model_path = "checkpoints/mae"
+    model_path = "vae_checkpoints/mae"
 
     kermany_classes = [("NORMAL", 0),
                        ("DRUSEN", 1),
